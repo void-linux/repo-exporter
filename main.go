@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"log"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -44,7 +45,10 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 	var otime float64
 	if c == 200 {
 		// If this fails it will just stay at zero; acceptable.
-		otime, _ = strconv.ParseFloat(string(otimes), 64)
+		otime, err = strconv.ParseFloat(string(otimes), 64)
+		if err != nil {
+			log.Println("Error parsing otime", err)
+		}
 	}
 
 	stimeStarts, c, err := fetch("http://" + target + "/stime-start")
@@ -54,7 +58,10 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 	var stimeStart float64
 	if c == 200 {
 		// If this fails it will just stay at zero; acceptable.
-		stimeStart, _ = strconv.ParseFloat(string(stimeStarts), 64)
+		stimeStart, err = strconv.ParseFloat(string(stimeStarts), 64)
+		if err != nil {
+			log.Println("Error parsing stimeStart", err)
+		}
 	}
 	stimeEnds, c, err := fetch("http://" + target + "/stime-end")
 	if err != nil {
@@ -63,7 +70,10 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 	var stimeEnd float64
 	if c == 200 {
 		// If this fails it will just stay at zero; acceptable.
-		stimeEnd, _ = strconv.ParseFloat(string(stimeEnds), 64)
+		stimeEnd, err = strconv.ParseFloat(string(stimeEnds), 64)
+		if err != nil {
+			log.Println("Error parsing stimeEnd", err)
+		}
 	}
 
 	var (
