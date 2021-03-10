@@ -47,14 +47,23 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 		otime, _ = strconv.ParseFloat(string(otimes), 64)
 	}
 
-	stimes, c, err := fetch("http://" + target + "/stime")
+	stimeStarts, c, err := fetch("http://" + target + "/stime-start")
 	if err != nil {
 		http.Error(w, "Error fetching origin time: "+err.Error(), http.StatusPreconditionFailed)
 	}
-	var stime float64
+	var stimeStart float64
 	if c == 200 {
 		// If this fails it will just stay at zero; acceptable.
-		stime, _ = strconv.ParseFloat(string(stimes), 64)
+		stimeStart, _ = strconv.ParseFloat(string(stimeStarts), 64)
+	}
+	stimeEnds, c, err := fetch("http://" + target + "/stime-end")
+	if err != nil {
+		http.Error(w, "Error fetching origin time: "+err.Error(), http.StatusPreconditionFailed)
+	}
+	var stimeEnd float64
+	if c == 200 {
+		// If this fails it will just stay at zero; acceptable.
+		stimeEnd, _ = strconv.ParseFloat(string(stimeEnds), 64)
 	}
 
 	var (
@@ -77,10 +86,16 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 				Help: "A Unix Timestamp updated every minute on the origin",
 			},
 		)
-		repoSyncTime = prometheus.NewGauge(
+		repoSyncStartTime = prometheus.NewGauge(
 			prometheus.GaugeOpts{
-				Name: prometheus.BuildFQName(namespace, "", "sync_time"),
-				Help: "A Unix timestamp written by the mirror when it last synced",
+				Name: prometheus.BuildFQName(namespace, "", "sync_start_time"),
+				Help: "A Unix timestamp written by the mirror when it last started a sync",
+			},
+		)
+		repoSyncEndTime = prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Name: prometheus.BuildFQName(namespace, "", "sync_end_time"),
+				Help: "A Unix timestamp written by the mirror when it last finished a sync",
 			},
 		)
 	)
@@ -90,12 +105,14 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 		repostaged.Set(1)
 	}
 	repoOriginTime.Set(otime)
-	repoSyncTime.Set(stime)
+	repoSyncStartTime.Set(stimeStart)
+	repoSyncEndTime.Set(stimeEnd)
 
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(rdatachecksum, repostaged, repoOriginTime)
-	if stime > 0 {
-		registry.Register(repoSyncTime)
+	if stimeStart > 0 && stimeEnd > 0 {
+		registry.Register(repoSyncStartTime)
+		registry.Register(repoSyncEndTime)
 	}
 	promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP(w, r)
 }
