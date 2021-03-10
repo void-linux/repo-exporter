@@ -3,9 +3,7 @@ package main
 import (
 	"hash/crc32"
 	"io/ioutil"
-	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -128,10 +126,5 @@ func main() {
                 </html>`))
 	})
 
-	bind := os.Getenv("E_BIND")
-	if bind == "" {
-		bind = ":1234"
-	}
-	log.Println("Binding to", bind)
-	log.Fatal(http.ListenAndServe(bind, nil))
+	http.ListenAndServe(":1234", nil)
 }
