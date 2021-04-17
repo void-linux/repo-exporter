@@ -132,10 +132,10 @@ func fetch(url string) ([]byte, int, error) {
 	c := http.Client{Timeout: time.Second * 10}
 
 	resp, err := c.Get(url)
-	defer resp.Body.Close()
 	if err != nil {
 		return nil, 0, err
 	}
+	defer resp.Body.Close()
 
 	bytes, err := ioutil.ReadAll(resp.Body)
 	return bytes, resp.StatusCode, err
