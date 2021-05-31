@@ -31,16 +31,19 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 
 	repodata, _, err := fetch("http://" + target + "/" + arch + "-repodata")
 	if err != nil {
+		log.Printf("Error fetching repodata: %s", err)
 		http.Error(w, "Error fetching repodata: "+err.Error(), http.StatusPreconditionFailed)
 	}
 
 	_, stagedataStatusCode, err := fetch("http://" + target + "/" + arch + "-stagedata")
 	if err != nil {
+		log.Printf("Error fetching stagedata: %s", err)
 		http.Error(w, "Error fetching stagedata: "+err.Error(), http.StatusPreconditionFailed)
 	}
 
 	otimes, c, err := fetch("http://" + target + "/otime")
 	if err != nil {
+		log.Println("Error fetching origin timestamp file: %s", err)
 		http.Error(w, "Error fetching origin time: "+err.Error(), http.StatusPreconditionFailed)
 	}
 	var otime float64
