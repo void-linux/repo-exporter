@@ -2,12 +2,13 @@ package main
 
 import (
 	"hash/crc32"
-	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
-	"time"
-	"log"
 	"strings"
+	"time"
+
+	"github.com/void-linux/repo-exporter/requests"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -17,7 +18,7 @@ const (
 	namespace = "repo"
 )
 
-func doProbe(w http.ResponseWriter, r *http.Request) {
+func (h handler) doProbe(w http.ResponseWriter, r *http.Request) {
 	target := r.URL.Query().Get("target")
 	if target == "" {
 		http.Error(w, "Target parameter is missing", http.StatusBadRequest)
@@ -29,21 +30,21 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repodata, _, err := fetch("http://" + target + "/" + arch + "-repodata")
+	repodata, _, err := h.client.Fetch("http://" + target + "/" + arch + "-repodata")
 	if err != nil {
 		log.Printf("Error fetching repodata: %s", err)
 		http.Error(w, "Error fetching repodata: "+err.Error(), http.StatusPreconditionFailed)
 	}
 
-	_, stagedataStatusCode, err := fetch("http://" + target + "/" + arch + "-stagedata")
+	_, stagedataStatusCode, err := h.client.Fetch("http://" + target + "/" + arch + "-stagedata")
 	if err != nil {
 		log.Printf("Error fetching stagedata: %s", err)
 		http.Error(w, "Error fetching stagedata: "+err.Error(), http.StatusPreconditionFailed)
 	}
 
-	otimes, c, err := fetch("http://" + target + "/otime")
+	otimes, c, err := h.client.Fetch("http://" + target + "/otime")
 	if err != nil {
-		log.Println("Error fetching origin timestamp file: %s", err)
+		log.Printf("Error fetching origin timestamp file: %s", err)
 		http.Error(w, "Error fetching origin time: "+err.Error(), http.StatusPreconditionFailed)
 	}
 	var otime float64
@@ -55,7 +56,7 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	stimeStarts, c, err := fetch("http://" + target + "/stime-start")
+	stimeStarts, c, err := h.client.Fetch("http://" + target + "/stime-start")
 	if err != nil {
 		http.Error(w, "Error fetching origin time: "+err.Error(), http.StatusPreconditionFailed)
 	}
@@ -67,7 +68,7 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error parsing stimeStart", err)
 		}
 	}
-	stimeEnds, c, err := fetch("http://" + target + "/stime-end")
+	stimeEnds, c, err := h.client.Fetch("http://" + target + "/stime-end")
 	if err != nil {
 		http.Error(w, "Error fetching origin time: "+err.Error(), http.StatusPreconditionFailed)
 	}
@@ -131,31 +132,21 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 	promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP(w, r)
 }
 
-func fetch(url string) ([]byte, int, error) {
-	c := http.Client{Timeout: time.Second * 10}
-
-	resp, err := c.Get(url)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer resp.Body.Close()
-
-	bytes, err := ioutil.ReadAll(resp.Body)
-	return bytes, resp.StatusCode, err
-}
-
-func main() {
-	http.Handle("/metrics", promhttp.Handler())
-	http.HandleFunc("/probe", doProbe)
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`<html>
+func (handler) root(w http.ResponseWriter, r *http.Request) {
+	_, _ = w.Write([]byte(`<html>
                 <head><title>XBPS Repo Exporter</title></head>
                 <body>
                 <h1>XBPS Repo Exporter</h1>
                 </body>
                 </html>`))
-	})
+}
+
+func main() {
+	h := handler{client: requests.NewHTTPRequestHandler(10 * time.Second)}
+
+	http.Handle("/metrics", promhttp.Handler())
+	http.HandleFunc("/probe", h.doProbe)
+	http.HandleFunc("/", h.root)
 
 	http.ListenAndServe(":1234", nil)
 }
