@@ -64,7 +64,7 @@ func TestFetch(t *testing.T) {
 			}
 
 			// assert expected body
-			if bytes.Compare(body, tt.expectedBody) != 0 {
+			if !bytes.Equal(body, tt.expectedBody) {
 				t.Errorf("(%s): expected body %s, actual %s", tt.givenURL, tt.expectedBody, body)
 			}
 

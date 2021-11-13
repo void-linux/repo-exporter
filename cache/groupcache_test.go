@@ -46,7 +46,7 @@ func TestGet(t *testing.T) {
 				t.Errorf("(%s): expected %s, actual %s", tt.givenKey, tt.expectedTimeElapsed, finished)
 			}
 
-			if bytes.Compare(response, tt.expectedData) != 0 {
+			if !bytes.Equal(response, tt.expectedData) {
 				t.Errorf("(%s): expected %s, actual %s", tt.givenKey, tt.expectedData, response)
 			}
 
