@@ -2,7 +2,7 @@ FROM golang:1.15 as build
 WORKDIR /void/repo-exporter
 COPY . .
 RUN go mod vendor && \
-        CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o /exporter .
+        CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o /exporter *.go
 
 FROM alpine:latest as certs
 RUN apk --update add ca-certificates

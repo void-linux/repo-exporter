@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"hash/crc32"
 	"log"
 	"net/http"
@@ -8,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/void-linux/repo-exporter/cache"
 	"github.com/void-linux/repo-exporter/requests"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -29,8 +32,22 @@ func (h handler) doProbe(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Arch parameter is missing", http.StatusBadRequest)
 		return
 	}
+	repodataURL := "https://" + target + "/" + arch + "-repodata"
+	headers, _, err := h.client.Head(repodataURL)
+	if err != nil {
+		log.Printf("Error fetching headers repodata: %s", err)
+		http.Error(w, "Error fetching headers repodata: "+err.Error(), http.StatusPreconditionFailed)
+	}
 
-	repodata, _, err := h.client.Fetch("http://" + target + "/" + arch + "-repodata")
+	lastModified, err := time.Parse(time.RFC1123, headers["Last-Modified"][0])
+	if err != nil {
+		log.Printf("Error parsing last modified from repodata: %s", err)
+		http.Error(w, "Error parsing last modified from repodata: "+err.Error(), http.StatusPreconditionFailed)
+	}
+
+	var repodata []byte
+	key := fmt.Sprintf("%s{{%d}}", repodataURL, lastModified.Unix())
+	err = h.storage.Get(r.Context(), key, &repodata)
 	if err != nil {
 		log.Printf("Error fetching repodata: %s", err)
 		http.Error(w, "Error fetching repodata: "+err.Error(), http.StatusPreconditionFailed)
@@ -142,7 +159,16 @@ func (handler) root(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	h := handler{client: requests.NewHTTPRequestHandler(10 * time.Second)}
+	peers := flag.String("pool", "http://localhost:8080", "server pool list separated by commas")
+	flag.Parse()
+	client := requests.NewHTTPRequestHandler(20 * time.Second)
+	h := handler{
+		client: client,
+		storage: cache.NewRepoDataStorage("repodata", 64<<20, *peers, func(key string) ([]byte, error) {
+			b, _, err := client.Fetch(key)
+			return b, err
+		}),
+	}
 
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/probe", h.doProbe)
