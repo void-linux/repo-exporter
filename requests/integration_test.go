@@ -54,7 +54,7 @@ func TestGetIntegration(t *testing.T) {
 
 func TestHeadIntegration(t *testing.T) {
 	// creating HTTPRequestHandler for tests
-	handler := NewHTTPRequestHandler(10 * time.Second)
+	handler := NewHTTPRequestHandler(30 * time.Second)
 
 	var tests = []struct {
 		name               string
@@ -79,8 +79,23 @@ func TestHeadIntegration(t *testing.T) {
 			expectedErr:        nil,
 		},
 		{
-			name:     "Integration test for HEAD HTTP request to repo-us.voidlinux.org",
-			givenURL: "https://repo-us.voidlinux.org/current/x86_64-repodata",
+			name:     "Integration test for HEAD HTTP request to mirror.clarkson.edu/voidlinux/",
+			givenURL: "https://mirror.clarkson.edu/voidlinux/current/x86_64-repodata",
+			expectedHeaders: []string{
+				"Content-Type",
+				"Content-Length",
+				"Etag",
+				"Date",
+				"Server",
+				"Accept-Ranges",
+				"Last-Modified",
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedErr:        nil,
+		},
+		{
+			name:     "Integration test for HEAD HTTP request to cdimage.debian.org/mirror/voidlinux/",
+			givenURL: "https://cdimage.debian.org/mirror/voidlinux/current/x86_64-repodata",
 			expectedHeaders: []string{
 				"Content-Type",
 				"Content-Length",
@@ -103,7 +118,7 @@ func TestHeadIntegration(t *testing.T) {
 			}
 
 			for _, key := range tt.expectedHeaders {
-				if headers[key][0] == "" {
+				if len(headers[key]) > 0 && headers[key][0] == "" {
 					t.Errorf("(%s): expected header %s", tt.givenURL, key)
 				}
 			}
