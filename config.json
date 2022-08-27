@@ -1,0 +1,26 @@
+{
+  "repos": [
+    {
+      "url": "https://repo-default.voidlinux.org/current",
+      "arch": "x86_64"
+    },
+    {
+      "url": "https://repo-default.voidlinux.org/current/musl",
+      "arch": "x86_64-musl"
+    }
+  ],
+  "mirrors": [
+    {
+      "url": "https://repo-de.voidlinux.org/current"
+    },
+    {
+      "url": "https://mirrors.summithq.com/voidlinux/current"
+    },
+    {
+      "url": "http://ftp.dk.xemacs.org/voidlinux/current"
+    },
+    {
+      "url": "https://mirrors.dotsrc.org/voidlinux/current"
+    }
+  ]
+}
