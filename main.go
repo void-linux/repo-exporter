@@ -3,18 +3,23 @@ package main
 import (
 	"hash/crc32"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
-	"time"
-	"log"
 	"strings"
+	"time"
 
+	"github.com/gregjones/httpcache"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
 	namespace = "repo"
+)
+
+var (
+	hc *http.Client
 )
 
 func doProbe(w http.ResponseWriter, r *http.Request) {
@@ -132,9 +137,7 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetch(url string) ([]byte, int, error) {
-	c := http.Client{Timeout: time.Second * 10}
-
-	resp, err := c.Get(url)
+	resp, err := hc.Get(url)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -145,6 +148,10 @@ func fetch(url string) ([]byte, int, error) {
 }
 
 func main() {
+	transport := httpcache.NewMemoryCacheTransport()
+	hc = transport.Client()
+	hc.Timeout = time.Second * 10
+
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/probe", doProbe)
 
