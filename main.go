@@ -1,14 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"hash/crc32"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/Duncaen/go-xbps/repo"
 	"github.com/gregjones/httpcache"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -39,16 +41,17 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error fetching repodata: %s", err)
 		http.Error(w, "Error fetching repodata: "+err.Error(), http.StatusPreconditionFailed)
 	}
-
-	_, stagedataStatusCode, err := fetch("http://" + target + "/" + arch + "-stagedata")
+	rd_reader := bytes.NewReader(repodata)
+	rd := &repo.Repository{URI: nil, Arch: arch}
+	_, err = rd.ReadFrom(rd_reader)
 	if err != nil {
-		log.Printf("Error fetching stagedata: %s", err)
-		http.Error(w, "Error fetching stagedata: "+err.Error(), http.StatusPreconditionFailed)
+		log.Printf("Error fetching repodata: %s", err)
+		http.Error(w, "Error reading repodata: "+err.Error(), http.StatusPreconditionFailed)
 	}
 
 	otimes, c, err := fetch("http://" + target + "/otime")
 	if err != nil {
-		log.Println("Error fetching origin timestamp file: %s", err)
+		log.Printf("Error fetching origin timestamp file: %s", err)
 		http.Error(w, "Error fetching origin time: "+err.Error(), http.StatusPreconditionFailed)
 	}
 	var otime float64
@@ -93,24 +96,41 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 			},
 		)
 
+		repoPkgs = prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Name: prometheus.BuildFQName(namespace, "", "packages"),
+				Help: "Packages present in the repo",
+			},
+		)
+
+		repoStagePkgs = prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Name: prometheus.BuildFQName(namespace, "", "staged_packages"),
+				Help: "Staged packages present in the repo",
+			},
+		)
+
 		repostaged = prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Name: prometheus.BuildFQName(namespace, "", "is_staged"),
-				Help: "Non-zero if a stagedata file is present on the repo",
+				Help: "Non-zero if the repo is staged",
 			},
 		)
+
 		repoOriginTime = prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Name: prometheus.BuildFQName(namespace, "", "origin_time"),
 				Help: "A Unix Timestamp updated every minute on the origin",
 			},
 		)
+
 		repoSyncStartTime = prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Name: prometheus.BuildFQName(namespace, "", "sync_start_time"),
 				Help: "A Unix timestamp written by the mirror when it last started a sync",
 			},
 		)
+
 		repoSyncEndTime = prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Name: prometheus.BuildFQName(namespace, "", "sync_end_time"),
@@ -120,7 +140,9 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 	)
 
 	rdatachecksum.Set(float64(crc32.ChecksumIEEE(repodata)))
-	if stagedataStatusCode == 200 {
+	repoPkgs.Set(float64(len(rd.Index)))
+	repoStagePkgs.Set(float64(len(rd.Stage)))
+	if len(rd.Stage) > 0 {
 		repostaged.Set(1)
 	}
 	repoOriginTime.Set(otime)
@@ -128,7 +150,7 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 	repoSyncEndTime.Set(stimeEnd)
 
 	registry := prometheus.NewRegistry()
-	registry.MustRegister(rdatachecksum, repostaged, repoOriginTime)
+	registry.MustRegister(rdatachecksum, repostaged, repoPkgs, repoStagePkgs, repoOriginTime)
 	if stimeStart > 0 && stimeEnd > 0 {
 		registry.Register(repoSyncStartTime)
 		registry.Register(repoSyncEndTime)
@@ -143,7 +165,7 @@ func fetch(url string) ([]byte, int, error) {
 	}
 	defer resp.Body.Close()
 
-	bytes, err := ioutil.ReadAll(resp.Body)
+	bytes, err := io.ReadAll(resp.Body)
 	return bytes, resp.StatusCode, err
 }
 
