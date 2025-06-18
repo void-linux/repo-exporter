@@ -27,32 +27,35 @@ var (
 func doProbe(w http.ResponseWriter, r *http.Request) {
 	target := r.URL.Query().Get("target")
 	if target == "" {
-		http.Error(w, "Target parameter is missing", http.StatusBadRequest)
+		http.Error(w, "# Target parameter is missing", http.StatusBadRequest)
 		return
 	}
 	arch := r.URL.Query().Get("arch")
 	if arch == "" {
-		http.Error(w, "Arch parameter is missing", http.StatusBadRequest)
+		http.Error(w, "# Arch parameter is missing", http.StatusBadRequest)
 		return
 	}
 
 	repodata, _, err := fetch("http://" + target + "/" + arch + "-repodata")
+	var rd *repo.Repository
 	if err != nil {
 		log.Printf("Error fetching repodata: %s", err)
-		http.Error(w, "Error fetching repodata: "+err.Error(), http.StatusPreconditionFailed)
+		http.Error(w, "# Error fetching repodata: "+err.Error(), http.StatusPreconditionFailed)
 	}
-	rd_reader := bytes.NewReader(repodata)
-	rd := &repo.Repository{URI: nil, Arch: arch}
-	_, err = rd.ReadFrom(rd_reader)
-	if err != nil {
-		log.Printf("Error fetching repodata: %s", err)
-		http.Error(w, "Error reading repodata: "+err.Error(), http.StatusPreconditionFailed)
+	if repodata != nil {
+		rd_reader := bytes.NewReader(repodata)
+		rd = &repo.Repository{URI: nil, Arch: arch}
+		_, err = rd.ReadFrom(rd_reader)
+		if err != nil {
+			log.Printf("Error reading repodata: %s", err)
+			http.Error(w, "# Error reading repodata: "+err.Error(), http.StatusPreconditionFailed)
+		}
 	}
 
 	otimes, c, err := fetch("http://" + target + "/otime")
 	if err != nil {
 		log.Printf("Error fetching origin timestamp file: %s", err)
-		http.Error(w, "Error fetching origin time: "+err.Error(), http.StatusPreconditionFailed)
+		http.Error(w, "# Error fetching origin time: "+err.Error(), http.StatusPreconditionFailed)
 	}
 	var otime float64
 	if c == 200 {
@@ -65,7 +68,7 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 
 	stimeStarts, c, err := fetch("http://" + target + "/stime-start")
 	if err != nil {
-		http.Error(w, "Error fetching origin time: "+err.Error(), http.StatusPreconditionFailed)
+		http.Error(w, "# Error fetching origin time: "+err.Error(), http.StatusPreconditionFailed)
 	}
 	var stimeStart float64
 	if c == 200 {
@@ -77,7 +80,7 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 	}
 	stimeEnds, c, err := fetch("http://" + target + "/stime-end")
 	if err != nil {
-		http.Error(w, "Error fetching origin time: "+err.Error(), http.StatusPreconditionFailed)
+		http.Error(w, "# Error fetching origin time: "+err.Error(), http.StatusPreconditionFailed)
 	}
 	var stimeEnd float64
 	if c == 200 {
@@ -140,10 +143,12 @@ func doProbe(w http.ResponseWriter, r *http.Request) {
 	)
 
 	rdatachecksum.Set(float64(crc32.ChecksumIEEE(repodata)))
-	repoPkgs.Set(float64(len(rd.Index)))
-	repoStagePkgs.Set(float64(len(rd.Stage)))
-	if len(rd.Stage) > 0 {
-		repostaged.Set(1)
+	if (rd != nil) {
+		repoPkgs.Set(float64(len(rd.Index)))
+		repoStagePkgs.Set(float64(len(rd.Stage)))
+		if len(rd.Stage) > 0 {
+			repostaged.Set(1)
+		}
 	}
 	repoOriginTime.Set(otime)
 	repoSyncStartTime.Set(stimeStart)
