@@ -1,26 +1,27 @@
 {
-  "repos": [
-    {
-      "url": "https://repo-default.voidlinux.org/current",
-      "arch": "x86_64"
-    },
-    {
-      "url": "https://repo-default.voidlinux.org/current/musl",
-      "arch": "x86_64-musl"
-    }
-  ],
+  "repos": {
+    "x86_64": [
+      "https://repo-default.voidlinux.org/current",
+      "https://repo-default.voidlinux.org/current/bootstrap",
+      "https://repo-default.voidlinux.org/current/nonfree",
+      "https://repo-default.voidlinux.org/current/debug",
+      "https://repo-default.voidlinux.org/current/multilib",
+      "https://repo-default.voidlinux.org/current/multilib/bootstrap",
+      "https://repo-default.voidlinux.org/current/multilib/nonfree"
+    ],
+    "x86_64-musl": [
+      "https://repo-default.voidlinux.org/current/musl",
+      "https://repo-default.voidlinux.org/current/musl/bootstrap",
+      "https://repo-default.voidlinux.org/current/musl/nonfree",
+      "https://repo-default.voidlinux.org/current/musl/debug"
+    ]
+  },
   "mirrors": [
-    {
-      "url": "https://repo-de.voidlinux.org/current"
-    },
-    {
-      "url": "https://mirrors.summithq.com/voidlinux/current"
-    },
-    {
-      "url": "http://ftp.dk.xemacs.org/voidlinux/current"
-    },
-    {
-      "url": "https://mirrors.dotsrc.org/voidlinux/current"
-    }
+    "https://repo-de.voidlinux.org/current",
+    "https://repo-fi.voidlinux.org/current",
+    "https://mirrors.summithq.com/voidlinux/current",
+    "http://ftp.dk.xemacs.org/voidlinux/current",
+    "https://mirrors.dotsrc.org/voidlinux/current",
+    "https://mirrors.cicku.me/voidlinux/current"
   ]
 }
