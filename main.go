@@ -45,7 +45,25 @@ var (
 	ScrapeRequestDuration *prometheus.HistogramVec
 )
 
+type Duration time.Duration
+
+func (d *Duration) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	val, err := time.ParseDuration(s)
+	if err != nil {
+		return err
+	}
+	*d = Duration(val)
+	return nil
+}
+
 type Config struct {
+	RepoScrapeInterval   Duration `json:"repo_scrape_interval,omitempty"`
+	MirrorScrapeInterval Duration `json:"mirror_scrape_interval,omitempty"`
+
 	Repos   map[string][]string
 	Mirrors []string
 }
@@ -58,6 +76,12 @@ func ReadConfig(path string) (Config, error) {
 	}
 	if err := json.Unmarshal([]byte(buf), &config); err != nil {
 		return config, fmt.Errorf("failed to parse config file: %s: %w", path, err)
+	}
+	if config.MirrorScrapeInterval == 0 {
+		config.MirrorScrapeInterval = Duration(60 * time.Second)
+	}
+	if config.RepoScrapeInterval == 0 {
+		config.RepoScrapeInterval = Duration(60 * time.Second)
 	}
 	return config, nil
 }
@@ -337,7 +361,7 @@ func main() {
 					if err := ScrapeRepo(context.Background(), repo, arch); err != nil {
 						slog.Error("failed to scrape repository", "repo", repo, "arch", arch, "error", err)
 					}
-					time.Sleep(1 * time.Minute)
+					time.Sleep(time.Duration(config.RepoScrapeInterval))
 				}
 			}()
 		}
@@ -349,7 +373,7 @@ func main() {
 				if err := ScrapeMirror(context.Background(), mirror); err != nil {
 					slog.Error("failed to scrape mirror", "mirror", mirror, "error", err)
 				}
-				time.Sleep(1 * time.Minute)
+				time.Sleep(time.Duration(config.MirrorScrapeInterval))
 			}
 		}()
 	}

@@ -1,4 +1,6 @@
 {
+  "repo_scrape_interval": "60s",
+  "mirror_scrape_interval": "60s",
   "repos": {
     "x86_64": [
       "https://repo-default.voidlinux.org/current",
@@ -9,11 +11,53 @@
       "https://repo-default.voidlinux.org/current/multilib/bootstrap",
       "https://repo-default.voidlinux.org/current/multilib/nonfree"
     ],
+    "i686": [
+      "https://repo-default.voidlinux.org/current",
+      "https://repo-default.voidlinux.org/current/bootstrap",
+      "https://repo-default.voidlinux.org/current/nonfree",
+      "https://repo-default.voidlinux.org/current/debug"
+    ],
+    "armv6l": [
+      "https://repo-default.voidlinux.org/current",
+      "https://repo-default.voidlinux.org/current/bootstrap",
+      "https://repo-default.voidlinux.org/current/nonfree",
+      "https://repo-default.voidlinux.org/current/debug"
+    ],
+    "armv7l": [
+      "https://repo-default.voidlinux.org/current",
+      "https://repo-default.voidlinux.org/current/bootstrap",
+      "https://repo-default.voidlinux.org/current/nonfree",
+      "https://repo-default.voidlinux.org/current/debug"
+    ],
     "x86_64-musl": [
       "https://repo-default.voidlinux.org/current/musl",
       "https://repo-default.voidlinux.org/current/musl/bootstrap",
       "https://repo-default.voidlinux.org/current/musl/nonfree",
       "https://repo-default.voidlinux.org/current/musl/debug"
+    ],
+    "armv6l-musl": [
+      "https://repo-default.voidlinux.org/current/musl",
+      "https://repo-default.voidlinux.org/current/musl/bootstrap",
+      "https://repo-default.voidlinux.org/current/musl/nonfree",
+      "https://repo-default.voidlinux.org/current/musl/debug"
+    ],
+    "armv7l-musl": [
+      "https://repo-default.voidlinux.org/current/musl",
+      "https://repo-default.voidlinux.org/current/musl/bootstrap",
+      "https://repo-default.voidlinux.org/current/musl/nonfree",
+      "https://repo-default.voidlinux.org/current/musl/debug"
+    ],
+    "aarch64": [
+      "https://repo-default.voidlinux.org/current/aarch64",
+      "https://repo-default.voidlinux.org/current/aarch64/bootstrap",
+      "https://repo-default.voidlinux.org/current/aarch64/nonfree",
+      "https://repo-default.voidlinux.org/current/aarch64/debug"
+    ],
+    "aarch64-musl": [
+      "https://repo-default.voidlinux.org/current/aarch64",
+      "https://repo-default.voidlinux.org/current/aarch64/bootstrap",
+      "https://repo-default.voidlinux.org/current/aarch64/nonfree",
+      "https://repo-default.voidlinux.org/current/aarch64/debug"
     ]
   },
   "mirrors": [
